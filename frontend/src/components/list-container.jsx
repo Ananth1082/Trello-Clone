@@ -1,47 +1,25 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { authHeader } from "../util";
+import { UNSAFE_createClientRoutesWithHMRRevalidationOptOut } from "react-router";
 
 export const ListContainer = () => {
-  const [lists, setLists] = useState([
-    {
-      _id: "list-1",
-      title: "To Do",
-      tasks: [
-        {
-          _id: "task-1",
-          title: "Setup project",
-          description: "Initialize Git repo and folder structure",
-        },
-        {
-          _id: "task-2",
-          title: "Design UI",
-          description: "Create wireframes and UI kit",
-        },
-      ],
-    },
-    {
-      _id: "list-2",
-      title: "In Progress",
-      tasks: [
-        {
-          _id: "task-3",
-          title: "Build Auth Module",
-          description: "Implement JWT auth",
-        },
-      ],
-    },
-    {
-      _id: "list-3",
-      title: "Done",
-      tasks: [
-        {
-          _id: "task-4",
-          title: "Setup MongoDB",
-          description: "Create and connect DB",
-        },
-      ],
-    },
-  ]);
-
+  const [lists, setLists] = useState([]);
+  useEffect(() => {
+    fetch("http://localhost:8080/api/lists", {
+      headers: authHeader(),
+    })
+      .then((res) => {
+        if (!res.ok) throw Error("couldnt fetch");
+        return res.json();
+      })
+      .then(({ lists }) => {
+        console.log(lists);
+        setLists(lists);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  });
   const [draggedTask, setDraggedTask] = useState(null);
   const [draggedTaskSource, setDraggedTaskSource] = useState(null);
   const [dragOverList, setDragOverList] = useState(null);
