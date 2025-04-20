@@ -1,11 +1,7 @@
-import React from "react";
-import ListContainer from "../components/list-container";
+import React, { useState } from "react";
+import { ListContainer } from "../components/list-container";
+const Dashboard = () => {
+  return <ListContainer />;
+};
 
-export default function Home() {
-  return (
-    <div>
-      Tasks
-      <ListContainer />
-    </div>
-  );
-}
+export default Dashboard;
