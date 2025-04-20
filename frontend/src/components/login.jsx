@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function SignIN() {
+  const nav = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -16,6 +17,22 @@ export default function SignIN() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    fetch("http://localhost:8080/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    })
+      .then((res) => {
+        if (!res.ok) throw Error("Unauthorized");
+        return res.json();
+      })
+      .then(({ token }) => {
+        localStorage.setItem("access_token", token);
+        nav("/");
+      })
+      .catch((err) => console.log(err));
   };
   return (
     <div className="max-w-30rem w-[20vw] border-black border-2 flex flex-col justify-center items-center gap-2 px-2 py-10 rounded-sm">

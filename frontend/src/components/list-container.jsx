@@ -60,7 +60,7 @@ export const ListContainer = () => {
     e.preventDefault();
 
     if (!draggedTask || draggedTaskSource === null) return;
-
+    if (destListId === draggedTaskSource) return;
     const sourceList = lists.find((l) => l._id === draggedTaskSource);
     const destList = lists.find((l) => l._id === destListId);
 
