@@ -4,6 +4,11 @@ import { UNSAFE_createClientRoutesWithHMRRevalidationOptOut } from "react-router
 
 export const ListContainer = () => {
   const [lists, setLists] = useState([]);
+  const [isAddListDiagOpen, setIsAddListDiagOpen] = useState(false);
+  const formData = {
+    title: "",
+    position: 0,
+  };
   useEffect(() => {
     fetch("http://localhost:8080/api/lists", {
       headers: authHeader(),
@@ -19,7 +24,7 @@ export const ListContainer = () => {
       .catch((err) => {
         console.log(err);
       });
-  });
+  }, []);
   const [draggedTask, setDraggedTask] = useState(null);
   const [draggedTaskSource, setDraggedTaskSource] = useState(null);
   const [dragOverList, setDragOverList] = useState(null);
@@ -92,7 +97,58 @@ export const ListContainer = () => {
             ))}
           </div>
         ))}
+        {isAddListDiagOpen && (
+          <div className={`bg-white rounded-lg shadow p-4`}>
+            <h3>New List</h3>{" "}
+            <p
+              onClick={() => {
+                setIsAddListDiagOpen(false);
+              }}
+            >
+              close
+            </p>
+            <div className="bg-blue-100 p-3 mb-3 rounded shadow cursor-move">
+              <div className="flex flex-col">
+                <label for="title">Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  id="title"
+                  // onChange={handleFormChange}
+                  className="border-black border-2 rounded-md min-w-[10rem] px-2"
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <label for="position">Position</label>
+                <input
+                  type="position"
+                  name="position"
+                  id="position"
+                  // onChange={handleFormChange}
+                  className="border-black border-2 rounded-md min-w-[10rem]  px-2"
+                />
+              </div>
+              <button
+                className="border-2 border-black p-1 rounded-lg"
+                onClick={() => {
+                  handleNewListSubmit;
+                }}
+              >
+                Add List
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+      <button
+        className="border-2 border-black p-1 rounded-lg"
+        onClick={() => {
+          setIsAddListDiagOpen(true);
+        }}
+      >
+        Add new list
+      </button>
     </div>
   );
 };
