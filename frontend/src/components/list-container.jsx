@@ -1,36 +1,52 @@
 import React, { useEffect, useState } from "react";
 import { authHeader } from "../util";
+import { Dialog } from "./ui/dialog";
 
 export const ListContainer = () => {
   const [lists, setLists] = useState([]);
   const [isAddListDiagOpen, setIsAddListDiagOpen] = useState(false);
-  const formData = {
+  const [isAddTaskDiagOpen, setIsAddTaskDiagOpen] = useState(false);
+  const [isUpdateListDiagOpen, setIsUpdateListDiagOpen] = useState(false);
+  const [isUpdateTaskDiagOpen, setIsUpdateTaskDiagOpen] = useState(false);
+
+  const [newList, setNewList] = useState({ title: "", position: 0 });
+  const [newTask, setNewTask] = useState({
     title: "",
-    position: 0,
-  };
+    description: "",
+    listId: "",
+  });
+  const [updateList, setUpdateList] = useState({ listId: "", title: "" });
+  const [updateTask, setUpdateTask] = useState({
+    taskId: "",
+    title: "",
+    description: "",
+  });
+
+  const [draggedTask, setDraggedTask] = useState(null);
+  const [draggedTaskSource, setDraggedTaskSource] = useState(null);
+  const [dragOverList, setDragOverList] = useState(null);
+
   useEffect(() => {
+    fetchLists();
+  }, []);
+
+  const fetchLists = () => {
     fetch("http://localhost:8080/api/lists", {
       headers: authHeader(),
     })
       .then((res) => {
-        if (!res.ok) throw Error("couldnt fetch");
+        if (!res.ok) throw Error("couldn't fetch");
         return res.json();
       })
       .then(({ lists }) => {
-        console.log(lists);
         lists.sort((a, b) => a.position - b.position);
-        lists.forEach((list) => {
-          list.tasks.sort((a, b) => a.position - b.position);
-        });
+        lists.forEach((list) =>
+          list.tasks.sort((a, b) => a.position - b.position)
+        );
         setLists(lists);
       })
-      .catch((err) => {
-        console.log(err);
-      });
-  }, []);
-  const [draggedTask, setDraggedTask] = useState(null);
-  const [draggedTaskSource, setDraggedTaskSource] = useState(null);
-  const [dragOverList, setDragOverList] = useState(null);
+      .catch((err) => console.log(err));
+  };
 
   const handleDragStart = (task, sourceListId) => {
     setDraggedTask(task);
@@ -50,27 +66,21 @@ export const ListContainer = () => {
         ...authHeader(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        list: destListId,
-      }),
+      body: JSON.stringify({ list: destListId }),
     })
       .then((res) => {
-        if (!res.ok) throw Error("couldnt move task");
+        if (!res.ok) throw Error("couldn't move task");
         return res.json();
       })
-      .then((data) => {
-        console.log(data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+      .then(() => fetchLists())
+      .catch((err) => console.log(err));
   };
 
   const handleDrop = (e, destListId) => {
     e.preventDefault();
-
     if (!draggedTask || draggedTaskSource === null) return;
     if (destListId === draggedTaskSource) return;
+
     const sourceList = lists.find((l) => l._id === draggedTaskSource);
     const destList = lists.find((l) => l._id === destListId);
 
@@ -78,7 +88,9 @@ export const ListContainer = () => {
       (t) => t._id !== draggedTask._id
     );
     const newDestTasks = [...destList.tasks, draggedTask];
+
     handleTaskMovement(draggedTask._id, destListId, draggedTaskSource);
+
     const updatedLists = lists.map((list) => {
       if (list._id === sourceList._id) {
         return { ...list, tasks: newSourceTasks };
@@ -95,9 +107,112 @@ export const ListContainer = () => {
     setDragOverList(null);
   };
 
+  const handleAddList = () => {
+    fetch("http://localhost:8080/api/lists", {
+      method: "POST",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newList),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        fetchLists();
+        setIsAddListDiagOpen(false);
+        setNewList({ title: "", position: 0 });
+      })
+      .catch((err) => console.log(err));
+  };
+
+  const handleAddTask = () => {
+    fetch("http://localhost:8080/api/tasks", {
+      method: "POST",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newTask),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        fetchLists();
+        setIsAddTaskDiagOpen(false);
+        setNewTask({ title: "", description: "", listId: "" });
+      })
+      .catch((err) => console.log(err));
+  };
+
+  const handleUpdateList = () => {
+    fetch(`http://localhost:8080/api/lists/${updateList.listId}`, {
+      method: "PUT",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title: updateList.title }),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        fetchLists();
+        setIsUpdateListDiagOpen(false);
+        setUpdateList({ listId: "", title: "" });
+      })
+      .catch((err) => console.log(err));
+  };
+
+  const handleUpdateTask = () => {
+    fetch(`http://localhost:8080/api/tasks/${updateTask.taskId}`, {
+      method: "PUT",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: updateTask.title,
+        description: updateTask.description,
+      }),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        fetchLists();
+        setIsUpdateTaskDiagOpen(false);
+        setUpdateTask({ taskId: "", title: "", description: "" });
+      })
+      .catch((err) => console.log(err));
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Task Dashboard</h1>
+
+      <div className="flex gap-4 mb-6">
+        <button
+          onClick={() => setIsAddListDiagOpen(true)}
+          className="border p-2 rounded bg-green-400"
+        >
+          Add List
+        </button>
+        <button
+          onClick={() => setIsAddTaskDiagOpen(true)}
+          className="border p-2 rounded bg-blue-400"
+        >
+          Add Task
+        </button>
+        <button
+          onClick={() => setIsUpdateListDiagOpen(true)}
+          className="border p-2 rounded bg-yellow-400"
+        >
+          Update List
+        </button>
+        <button
+          onClick={() => setIsUpdateTaskDiagOpen(true)}
+          className="border p-2 rounded bg-purple-400"
+        >
+          Update Task
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {lists.map((list) => (
           <div
@@ -124,58 +239,165 @@ export const ListContainer = () => {
             ))}
           </div>
         ))}
-        {isAddListDiagOpen && (
-          <div className={`bg-white rounded-lg shadow p-4`}>
-            <h3>New List</h3>{" "}
-            <p
-              onClick={() => {
-                setIsAddListDiagOpen(false);
-              }}
-            >
-              close
-            </p>
-            <div className="bg-blue-100 p-3 mb-3 rounded shadow cursor-move">
-              <div className="flex flex-col">
-                <label for="title">Title</label>
-                <input
-                  type="text"
-                  name="title"
-                  id="title"
-                  // onChange={handleFormChange}
-                  className="border-black border-2 rounded-md min-w-[10rem] px-2"
-                />
-              </div>
-
-              <div className="flex flex-col">
-                <label for="position">Position</label>
-                <input
-                  type="position"
-                  name="position"
-                  id="position"
-                  // onChange={handleFormChange}
-                  className="border-black border-2 rounded-md min-w-[10rem]  px-2"
-                />
-              </div>
-              <button
-                className="border-2 border-black p-1 rounded-lg"
-                onClick={() => {
-                  handleNewListSubmit;
-                }}
-              >
-                Add List
-              </button>
-            </div>
-          </div>
-        )}
       </div>
-      <button
-        className="border-2 border-black p-1 rounded-lg"
-        onClick={() => {
-          setIsAddListDiagOpen(true);
-        }}
-      >
-        Add new list
-      </button>
+
+      {/* Modals */}
+      {isAddListDiagOpen && (
+        <Dialog
+          title="Add New List"
+          onClose={() => setIsAddListDiagOpen(false)}
+        >
+          <input
+            className="border p-2 mb-2 w-full"
+            type="text"
+            placeholder="Title"
+            value={newList.title}
+            onChange={(e) => setNewList({ ...newList, title: e.target.value })}
+          />
+          <input
+            className="border p-2 mb-2 w-full"
+            type="number"
+            placeholder="Position"
+            value={newList.position}
+            onChange={(e) =>
+              setNewList({ ...newList, position: Number(e.target.value) })
+            }
+          />
+          <button
+            onClick={handleAddList}
+            className="border p-2 bg-green-400 rounded w-full"
+          >
+            Add List
+          </button>
+        </Dialog>
+      )}
+
+      {isAddTaskDiagOpen && (
+        <Dialog
+          title="Add New Task"
+          onClose={() => setIsAddTaskDiagOpen(false)}
+        >
+          <input
+            className="border p-2 mb-2 w-full"
+            type="text"
+            placeholder="Title"
+            value={newTask.title}
+            onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+          />
+          <input
+            className="border p-2 mb-2 w-full"
+            type="text"
+            placeholder="Description"
+            value={newTask.description}
+            onChange={(e) =>
+              setNewTask({ ...newTask, description: e.target.value })
+            }
+          />
+          <select
+            className="border p-2 mb-2 w-full"
+            value={newTask.listId}
+            onChange={(e) => setNewTask({ ...newTask, listId: e.target.value })}
+          >
+            <option value="">Select List</option>
+            {lists.map((list) => (
+              <option key={list._id} value={list._id}>
+                {list.title}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleAddTask}
+            className="border p-2 bg-blue-400 rounded w-full"
+          >
+            Add Task
+          </button>
+        </Dialog>
+      )}
+
+      {isUpdateListDiagOpen && (
+        <Dialog
+          title="Update List"
+          onClose={() => setIsUpdateListDiagOpen(false)}
+        >
+          <select
+            className="border p-2 mb-2 w-full"
+            value={updateList.listId}
+            onChange={(e) =>
+              setUpdateList({ ...updateList, listId: e.target.value })
+            }
+          >
+            <option value="">Select List</option>
+            {lists.map((list) => (
+              <option key={list._id} value={list._id}>
+                {list.title}
+              </option>
+            ))}
+          </select>
+          <input
+            className="border p-2 mb-2 w-full"
+            type="text"
+            placeholder="New Title"
+            value={updateList.title}
+            onChange={(e) =>
+              setUpdateList({ ...updateList, title: e.target.value })
+            }
+          />
+          <button
+            onClick={handleUpdateList}
+            className="border p-2 bg-yellow-400 rounded w-full"
+          >
+            Update List
+          </button>
+        </Dialog>
+      )}
+
+      {isUpdateTaskDiagOpen && (
+        <Dialog
+          title="Update Task"
+          onClose={() => setIsUpdateTaskDiagOpen(false)}
+        >
+          <select
+            className="border p-2 mb-2 w-full"
+            value={updateTask.taskId}
+            onChange={(e) =>
+              setUpdateTask({ ...updateTask, taskId: e.target.value })
+            }
+          >
+            <option value="">Select Task</option>
+            {lists.flatMap((list) =>
+              list.tasks.map((task) => (
+                <option key={task._id} value={task._id}>
+                  {task.title}
+                </option>
+              ))
+            )}
+          </select>
+          <input
+            className="border p-2 mb-2 w-full"
+            type="text"
+            placeholder="New Title"
+            value={updateTask.title}
+            onChange={(e) =>
+              setUpdateTask({ ...updateTask, title: e.target.value })
+            }
+          />
+          <input
+            className="border p-2 mb-2 w-full"
+            type="text"
+            placeholder="New Description"
+            value={updateTask.description}
+            onChange={(e) =>
+              setUpdateTask({ ...updateTask, description: e.target.value })
+            }
+          />
+          <button
+            onClick={handleUpdateTask}
+            className="border p-2 bg-purple-400 rounded w-full"
+          >
+            Update Task
+          </button>
+        </Dialog>
+      )}
     </div>
   );
 };
