@@ -250,16 +250,17 @@ app.delete("/api/tasks/:id", async (req, res) => {
   }
 });
 app.put("/api/tasks/:id/move", async (req, res) => {
-  const { position } = req.body;
+  const { position, list } = req.body;
   const { id } = req.params;
   try {
-    const task = await Task.findByIdAndUpdate(
-      id,
-      {
-        position,
-      },
-      { new: true }
-    );
+    const updatedLocation = {};
+    if (position) updatedLocation.position = position;
+    if (list) updatedLocation.list = list;
+    if (!position && !list)
+      return res.status(400).json({ msg: "missing fields" });
+    const task = await Task.findByIdAndUpdate(id, updatedLocation, {
+      new: true,
+    });
     res.status(200).json({ msg: "task moved", task });
   } catch (error) {
     res.status(500).json({ msg: "couldnt move task" });

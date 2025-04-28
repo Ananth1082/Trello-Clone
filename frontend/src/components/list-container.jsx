@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { authHeader } from "../util";
-import { UNSAFE_createClientRoutesWithHMRRevalidationOptOut } from "react-router";
 
 export const ListContainer = () => {
   const [lists, setLists] = useState([]);
@@ -19,6 +18,10 @@ export const ListContainer = () => {
       })
       .then(({ lists }) => {
         console.log(lists);
+        lists.sort((a, b) => a.position - b.position);
+        lists.forEach((list) => {
+          list.tasks.sort((a, b) => a.position - b.position);
+        });
         setLists(lists);
       })
       .catch((err) => {
@@ -39,6 +42,30 @@ export const ListContainer = () => {
     setDragOverList(listId);
   };
 
+  const handleTaskMovement = (taskId, destListId, sourceListId) => {
+    if (destListId === sourceListId) return;
+    fetch(`http://localhost:8080/api/tasks/${taskId}/move`, {
+      method: "PUT",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        list: destListId,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw Error("couldnt move task");
+        return res.json();
+      })
+      .then((data) => {
+        console.log(data);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
+
   const handleDrop = (e, destListId) => {
     e.preventDefault();
 
@@ -51,7 +78,7 @@ export const ListContainer = () => {
       (t) => t._id !== draggedTask._id
     );
     const newDestTasks = [...destList.tasks, draggedTask];
-
+    handleTaskMovement(draggedTask._id, destListId, draggedTaskSource);
     const updatedLists = lists.map((list) => {
       if (list._id === sourceList._id) {
         return { ...list, tasks: newSourceTasks };
